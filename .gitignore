@@ -3,4 +3,4 @@ node_modules
 .env
 package-lock.json
 logs
-.env*
+.env.dev

@@ -4,8 +4,10 @@ import cookieParser from "cookie-parser";
 import { setupRouter } from "./router";
 import cors from "cors";
 import redisClient from "./utils/redis";
+import env from "./utils/env";
 require("dotenv").config();
 
+const PORT = process.env.PORT || 8000;
 (async () => {
   await redisClient.connect();
 
@@ -16,7 +18,7 @@ require("dotenv").config();
   app.use(
     cors({
       methods: ["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"],
-      origin: ["http://localhost:3000"],
+      origin: [env("FRONTEND_URL")!],
       credentials: true,
     })
   );
@@ -25,7 +27,7 @@ require("dotenv").config();
 
   setupRouter(app);
 
-  app.listen(8000, () => {
-    console.log("🚀 Server listening on http://localhost:" + 8000);
+  app.listen(PORT, () => {
+    console.log("🚀 Server listening on http://localhost:" + PORT);
   });
 })();

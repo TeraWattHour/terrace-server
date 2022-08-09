@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "serve": "ts-node -r tsconfig-paths/register index.ts",
     "dev": "ts-node-dev --exit-child --transpile-only --respawn --ignore-watch node_modules -r tsconfig-paths/register index.ts"
   },
   "author": "TeraWattHour",
@@ -37,6 +38,7 @@
     "@types/node-fetch": "^2.6.2",
     "@types/request-ip": "^0.0.37",
     "@types/uuid": "^8.3.4",
+    "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "tsconfig-paths": "^4.1.0"
   }
