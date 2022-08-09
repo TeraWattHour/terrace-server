@@ -20,7 +20,7 @@ export default class ListController implements ControllerClass {
 
   public async mount(app: Express) {
     this.router.get("/", w(this, this.search_lists));
-    this.router.post("/", w(this, this.create_list));
+    this.router.post("/", authMiddleware, w(this, this.create_list));
     this.router.get("/:listId", w(this, this.get_list));
     // this.router.get("/me", authMiddleware, w(this, this.getMe));
 
@@ -42,10 +42,10 @@ export default class ListController implements ControllerClass {
       const lists = await this.prisma.list.findMany({
         where: {
           name: {
-            search: data.term,
+            search: escape(data.term),
           },
           description: {
-            search: data.term,
+            search: escape(data.term),
           },
         },
         select: {
@@ -89,7 +89,6 @@ export default class ListController implements ControllerClass {
         },
         select: {
           id: true,
-          bannerUrl: true,
           description: true,
           name: true,
           thumbnailUrl: true,
@@ -122,6 +121,8 @@ export default class ListController implements ControllerClass {
   }
 
   private async create_list(c: Context) {
+    const userId = c.req.locals!.userId!;
+
     const validation = await create_list_dto.safeParseAsync(c.req.body);
     if (!validation.success) {
       return c.res
@@ -133,14 +134,26 @@ export default class ListController implements ControllerClass {
       const list = await this.prisma.list.create({
         data: {
           name: data.name,
-          bannerUrl: data.bannerUrl,
-          thumbnailUrl: data.thumbnailUrl,
+          thumbnailUrl: data.thumbnail,
           description: data.description,
-          userId: "cl6ljmeco0009dn4t5chuq26p",
+          userId,
+          places: {
+            createMany: {
+              data: data.places.map((x) => ({
+                name: x.name,
+                lat: x.lat,
+                lon: x.lon,
+                description: x.description,
+                bannerUrl: x.banner,
+                thumbnailUrl: x.thumbnail,
+                userId,
+              })),
+            },
+          },
         },
       });
 
-      c.res.json(list);
+      c.res.status(201).json({ data: list });
     } catch (e) {
       c.raiseInternalServerError(e);
     }

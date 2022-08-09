@@ -17,6 +17,7 @@ model User {
 
   name      String  @db.VarChar(16)
   avatarUrl String? @db.VarChar(2048)
+  email     String  @unique @db.VarChar(255)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
