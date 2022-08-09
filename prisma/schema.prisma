@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id String @id @default(cuid())
+
+  name      String  @db.VarChar(16)
+  avatarUrl String? @db.VarChar(2048)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  bannedAt  DateTime?
+
+  profiles Profile[]
+  places   Place[]
+  lists    List[]
+  sessions Session[]
+}
+
+model Profile {
+  id Int @id @default(autoincrement())
+
+  providerName Provider
+  providerId   String
+
+  user   User   @relation(references: [id], fields: [userId], onDelete: Cascade, onUpdate: Cascade)
+  userId String
+
+  @@unique([providerId, providerName])
+}
+
+enum Provider {
+  google
+  discord
+}
+
+model List {
+  id Int @id @default(autoincrement())
+
+  name         String  @db.VarChar(48)
+  description  String  @db.VarChar(255)
+  thumbnailUrl String? @db.VarChar(2048)
+
+  user   User   @relation(references: [id], fields: [userId], onDelete: Cascade, onUpdate: Cascade)
+  userId String
+
+  places Place[]
+}
+
+model Place {
+  id Int @id @default(autoincrement())
+
+  name         String  @db.VarChar(48)
+  description  String? @db.VarChar(255)
+  thumbnailUrl String? @db.VarChar(2048)
+  bannerUrl    String? @db.VarChar(2048)
+
+  lat Float
+  lon Float
+
+  list   List @relation(references: [id], fields: [listId], onDelete: Cascade, onUpdate: Cascade)
+  listId Int
+
+  user   User   @relation(references: [id], fields: [userId], onDelete: Cascade, onUpdate: Cascade)
+  userId String
+}
+
+model Session {
+  id String @id @default(cuid())
+
+  userAgent String?
+  ip        String?
+
+  expiresAt DateTime
+
+  userId String
+  user   User   @relation(references: [id], fields: [userId], onDelete: Cascade)
+}
