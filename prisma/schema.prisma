@@ -15,9 +15,9 @@ datasource db {
 model User {
   id String @id @default(cuid())
 
-  name      String  @db.VarChar(16)
-  avatarUrl String? @db.VarChar(2048)
-  email     String  @unique @db.VarChar(255)
+  name   String  @db.VarChar(16)
+  avatar String? @db.VarChar(2048)
+  email  String  @unique @db.VarChar(255)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
@@ -49,9 +49,9 @@ enum Provider {
 model List {
   id Int @id @default(autoincrement())
 
-  name         String  @db.VarChar(48)
-  description  String  @db.VarChar(255)
-  thumbnailUrl String? @db.VarChar(2048)
+  name        String  @db.VarChar(48)
+  description String  @db.VarChar(255)
+  thumbnail   String? @db.VarChar(2048)
 
   user   User   @relation(references: [id], fields: [userId], onDelete: Cascade, onUpdate: Cascade)
   userId String
@@ -62,10 +62,10 @@ model List {
 model Place {
   id Int @id @default(autoincrement())
 
-  name         String  @db.VarChar(48)
-  description  String? @db.VarChar(255)
-  thumbnailUrl String? @db.VarChar(2048)
-  bannerUrl    String? @db.VarChar(2048)
+  name        String  @db.VarChar(48)
+  description String? @db.VarChar(255)
+  thumbnail   String? @db.VarChar(2048)
+  banner      String? @db.VarChar(2048)
 
   lat Float
   lon Float

@@ -9,6 +9,9 @@
   },
   "author": "TeraWattHour",
   "license": "ISC",
+  "prettier": {
+    "printWidth": 130
+  },
   "dependencies": {
     "@prisma/client": "^4.1.1",
     "bcryptjs": "^2.4.3",

@@ -5,6 +5,9 @@ import { setupRouter } from "./router";
 import cors from "cors";
 import redisClient from "./utils/redis";
 import env from "./utils/env";
+import path from "path";
+import { IS_DEV } from "./utils/consts";
+
 require("dotenv").config();
 
 const PORT = process.env.PORT || 8000;
@@ -18,12 +21,19 @@ const PORT = process.env.PORT || 8000;
   app.use(
     cors({
       methods: ["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"],
-      origin: [env("FRONTEND_URL")!],
+      origin: [env("FRONTEND_DOMAIN")!],
       credentials: true,
     })
   );
-  app.use("/temp", express.static("temp/"));
-  app.use("/media", express.static("media/"));
+
+  if (!IS_DEV()) {
+    app.use(express.static(path.join(__dirname, "client")));
+
+    app.use(async (req, res, next) => {
+      if (req.url.includes("/api/v1")) return next();
+      res.sendFile(path.join(__dirname, "client", "index.html"));
+    });
+  }
 
   setupRouter(app);
 

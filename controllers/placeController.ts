@@ -1,6 +1,6 @@
 import { ErrorCode } from "@/consts/errorCodes";
-import { create_list_dto, get_list_dto, search_list_dto } from "@/dtos/list";
-import { get_place_dto } from "@/dtos/place";
+import { create_list_dto, get_list_dto, search_list_dto } from "common/dtos/list";
+import { get_place_dto } from "common/dtos/place";
 import authMiddleware from "@/middleware/authMiddleware";
 import Context from "@/utils/context";
 import formatZodErrors from "@/utils/formatZodErrors";
@@ -30,9 +30,7 @@ export default class PlaceController implements ControllerClass {
       placeId: c.req.params["placeId"],
     });
     if (!validation.success) {
-      return c.res
-        .status(400)
-        .json({ errors: formatZodErrors(validation.error) });
+      return c.res.status(400).json({ errors: formatZodErrors(validation.error) });
     }
     const { data } = validation;
 
@@ -43,9 +41,7 @@ export default class PlaceController implements ControllerClass {
         },
       });
       if (!place) {
-        return c.res
-          .status(404)
-          .json({ errors: [{ code: ErrorCode.NOT_FOUND }] });
+        return c.res.status(404).json({ errors: [{ code: ErrorCode.NOT_FOUND }] });
       }
 
       c.res.json({ data: place });

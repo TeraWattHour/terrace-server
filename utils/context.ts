@@ -13,10 +13,7 @@ export default class Context {
   }
 
   public raiseInternalServerError(error: unknown) {
-    const writer = fs.createWriteStream(
-      path.resolve(__dirname, "..", "logs", "errors.log"),
-      { flags: "a", encoding: "utf-8" }
-    );
+    const writer = fs.createWriteStream(path.resolve(__dirname, "..", "logs", "errors.log"), { flags: "a", encoding: "utf-8" });
 
     let stringified: string;
     try {
@@ -27,9 +24,7 @@ export default class Context {
 
     console.log(error);
 
-    writer.write(
-      `[ERROR] (${new Date().toISOString()}): ` + stringified + "\r\n"
-    );
+    writer.write(`[ERROR] (${new Date().toISOString()}): ` + stringified + "\r\n");
 
     this.res.status(500).json({
       errors: [{ code: "" }],

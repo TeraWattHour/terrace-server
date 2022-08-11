@@ -7,11 +7,7 @@ import { isBefore } from "date-fns";
 import { ErrorCode } from "@/consts/errorCodes";
 import { LocalRequest } from "@/utils/types";
 
-export default async function authMiddleware(
-  req: LocalRequest,
-  res: Response,
-  next: NextFunction
-) {
+export default async function authMiddleware(req: LocalRequest, res: Response, next: NextFunction) {
   const fail = () => {
     res.clearCookie("qid");
     res.status(401).json({
@@ -30,13 +26,7 @@ export default async function authMiddleware(
   } catch (error) {
     return fail();
   }
-  if (
-    !decoded ||
-    !decoded.sub ||
-    !decoded.token ||
-    !decoded.exp ||
-    +new Date() > decoded.exp
-  ) {
+  if (!decoded || !decoded.sub || !decoded.token || !decoded.exp || +new Date() > decoded.exp) {
     return fail();
   }
 

@@ -4,14 +4,9 @@ import env from "../utils/env";
 import { prisma } from "../utils/prisma";
 import redisClient from "../utils/redis";
 import { isBefore } from "date-fns";
-import { ErrorCode } from "@/consts/errorCodes";
 import { LocalRequest } from "@/utils/types";
 
-export default async function optionalAuthMiddleware(
-  req: LocalRequest,
-  res: Response,
-  next: NextFunction
-) {
+export default async function optionalAuthMiddleware(req: LocalRequest, res: Response, next: NextFunction) {
   const fail = () => {
     return next();
   };
@@ -27,13 +22,7 @@ export default async function optionalAuthMiddleware(
   } catch (error) {
     return fail();
   }
-  if (
-    !decoded ||
-    !decoded.sub ||
-    !decoded.token ||
-    !decoded.exp ||
-    +new Date() > decoded.exp
-  ) {
+  if (!decoded || !decoded.sub || !decoded.token || !decoded.exp || +new Date() > decoded.exp) {
     return fail();
   }
 

@@ -12,7 +12,7 @@ import { RedisClientType } from "../utils/redis";
 import { IS_DEV } from "../utils/consts";
 import _ from "lodash";
 import authMiddleware from "@/middleware/authMiddleware";
-import { discord_response_dto, provider_callback_dto } from "@/dtos/auth";
+import { discord_response_dto, provider_callback_dto } from "common/dtos/auth";
 import fetch from "node-fetch";
 import { ErrorCode } from "@/consts/errorCodes";
 import { getDiscordUserByCode } from "@/utils/getDiscordUserByCode";
@@ -31,11 +31,7 @@ export default class AuthController implements ControllerClass {
 
   public async mount(app: Express) {
     this.router.get("/me", authMiddleware, w(this, this.get_me));
-    this.router.get(
-      "/:provider/callback",
-      optionalAuthMiddleware,
-      w(this, this.provider_callback)
-    );
+    this.router.get("/:provider/callback", optionalAuthMiddleware, w(this, this.provider_callback));
 
     app.use("/api/v1/auth", this.router);
   }
@@ -63,9 +59,7 @@ export default class AuthController implements ControllerClass {
       provider: c.req.params["provider"],
     });
     if (!validation.success) {
-      return c.res
-        .status(400)
-        .json({ errors: formatZodErrors(validation.error) });
+      return c.res.status(400).json({ errors: formatZodErrors(validation.error) });
     }
 
     try {
@@ -73,9 +67,7 @@ export default class AuthController implements ControllerClass {
         const me = await getDiscordUserByCode(c.req.query["code"] as string); // internal
         const validation = await discord_response_dto.safeParseAsync(me);
         if (!validation.success) {
-          return c.res
-            .status(400)
-            .json({ errors: formatZodErrors(validation.error) });
+          return c.res.status(400).json({ errors: formatZodErrors(validation.error) });
         }
 
         const dbProfile = await this.prisma.profile.findUnique({
@@ -89,6 +81,7 @@ export default class AuthController implements ControllerClass {
         if (dbProfile) {
           return await this.establishSession(c, dbProfile.userId);
         }
+
         const dbUser = await this.prisma.user.findUnique({
           where: {
             email: me.email,
@@ -113,7 +106,7 @@ export default class AuthController implements ControllerClass {
           data: {
             name: me.username,
             email: me.email,
-            avatarUrl: `https://cdn.discordapp.com/avatars/${me.id}/${me.avatar}.webp`,
+            avatar: `https://cdn.discordapp.com/avatars/${me.id}/${me.avatar}.webp`,
             profiles: {
               create: {
                 providerId: me.id,
@@ -123,17 +116,13 @@ export default class AuthController implements ControllerClass {
           },
         });
         if (!user) {
-          return c.res
-            .status(401)
-            .json({ errors: [{ code: ErrorCode.NOT_AUTHENTICATED }] });
+          return c.res.status(401).json({ errors: [{ code: ErrorCode.NOT_AUTHENTICATED }] });
         }
 
         return this.establishSession(c, user.id);
       }
 
-      c.res
-        .status(401)
-        .json({ errors: [{ code: ErrorCode.NOT_AUTHENTICATED }] });
+      c.res.status(401).json({ errors: [{ code: ErrorCode.NOT_AUTHENTICATED }] });
     } catch (e) {
       c.raiseInternalServerError(e);
     }

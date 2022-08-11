@@ -1,5 +1,5 @@
 import { ErrorCode } from "@/consts/errorCodes";
-import { create_list_dto, get_list_dto, search_list_dto } from "@/dtos/list";
+import { create_list_dto, get_list_by_user_dto, get_list_dto, search_list_dto } from "common/dtos/list";
 import authMiddleware from "@/middleware/authMiddleware";
 import Context from "@/utils/context";
 import formatZodErrors from "@/utils/formatZodErrors";
@@ -8,6 +8,7 @@ import { w } from "@/utils/wrappers";
 import { PrismaClient } from "@prisma/client";
 import { Express, Router } from "express";
 import _ from "lodash";
+import { create_list_dto_server } from "@/dtos/list";
 
 export default class ListController implements ControllerClass {
   router: Router;
@@ -22,9 +23,66 @@ export default class ListController implements ControllerClass {
     this.router.get("/", w(this, this.search_lists));
     this.router.post("/", authMiddleware, w(this, this.create_list));
     this.router.get("/:listId", w(this, this.get_list));
-    // this.router.get("/me", authMiddleware, w(this, this.getMe));
+    this.router.get("/user/:userId", w(this, this.get_lists_by_user));
 
     app.use("/api/v1/list", this.router);
+  }
+
+  private async get_lists_by_user(c: Context) {
+    const validation = await get_list_by_user_dto.safeParseAsync({
+      userId: c.req.params["userId"],
+      take: c.req.query["take"],
+      cursor: c.req.query["cursor"],
+    });
+    if (!validation.success) {
+      return c.res.status(400).json({ errors: formatZodErrors(validation.error) });
+    }
+    const { data } = validation;
+
+    try {
+      const { _count: listCount } = await this.prisma.list.aggregate({
+        where: {
+          userId: data.userId,
+        },
+        _count: true,
+      });
+      if (listCount === 0) {
+        return c.res.json({
+          pagination: {
+            cursor: data.cursor || null,
+            nextCursor: null,
+            total: 0,
+            take: data.take,
+          },
+          data: [],
+        });
+      }
+      const pagination = data.cursor ? { cursor: { id: data.cursor } } : null;
+      const lists = await this.prisma.list.findMany({
+        where: {
+          userId: data.userId,
+        },
+        ...pagination,
+        take: data.take,
+        select: {
+          id: true,
+          name: true,
+          thumbnail: true,
+        },
+      });
+
+      c.res.json({
+        pagination: {
+          cursor: data.cursor || null,
+          nextCursor: null,
+          total: listCount,
+          take: data.take,
+        },
+        data: lists,
+      });
+    } catch (e) {
+      c.raiseInternalServerError(e);
+    }
   }
 
   private async search_lists(c: Context) {
@@ -32,9 +90,7 @@ export default class ListController implements ControllerClass {
       term: c.req.query["term"],
     });
     if (!validation.success) {
-      return c.res
-        .status(400)
-        .json({ errors: formatZodErrors(validation.error) });
+      return c.res.status(400).json({ errors: formatZodErrors(validation.error) });
     }
     const { data } = validation;
 
@@ -51,7 +107,7 @@ export default class ListController implements ControllerClass {
         select: {
           id: true,
           name: true,
-          thumbnailUrl: true,
+          thumbnail: true,
           places: {
             select: {
               id: true,
@@ -62,9 +118,7 @@ export default class ListController implements ControllerClass {
       });
 
       c.res.json({
-        data: lists
-          .filter((x) => x.places.length > 0)
-          .map((x) => _.omit(x, "places")),
+        data: lists.filter((x) => x.places.length > 0).map((x) => _.omit(x, "places")),
       });
     } catch (e) {
       c.raiseInternalServerError(e);
@@ -76,9 +130,7 @@ export default class ListController implements ControllerClass {
       listId: c.req.params["listId"],
     });
     if (!validation.success) {
-      return c.res
-        .status(400)
-        .json({ errors: formatZodErrors(validation.error) });
+      return c.res.status(400).json({ errors: formatZodErrors(validation.error) });
     }
     const { data } = validation;
 
@@ -91,7 +143,7 @@ export default class ListController implements ControllerClass {
           id: true,
           description: true,
           name: true,
-          thumbnailUrl: true,
+          thumbnail: true,
           userId: true,
           places: {
             select: {
@@ -99,17 +151,15 @@ export default class ListController implements ControllerClass {
               lat: true,
               lon: true,
               description: true,
-              thumbnailUrl: true,
-              bannerUrl: true,
+              thumbnail: true,
+              banner: true,
               name: true,
             },
           },
         },
       });
       if (!list) {
-        return c.res
-          .status(404)
-          .json({ errors: [{ code: ErrorCode.NOT_FOUND }] });
+        return c.res.status(404).json({ errors: [{ code: ErrorCode.NOT_FOUND }] });
       }
 
       c.res.json({
@@ -123,18 +173,16 @@ export default class ListController implements ControllerClass {
   private async create_list(c: Context) {
     const userId = c.req.locals!.userId!;
 
-    const validation = await create_list_dto.safeParseAsync(c.req.body);
+    const validation = await create_list_dto_server.safeParseAsync(c.req.body);
     if (!validation.success) {
-      return c.res
-        .status(400)
-        .json({ errors: formatZodErrors(validation.error) });
+      return c.res.status(400).json({ errors: [{ code: ErrorCode.VALIDATION, data: validation.error }] });
     }
     const { data } = validation;
     try {
       const list = await this.prisma.list.create({
         data: {
           name: data.name,
-          thumbnailUrl: data.thumbnail,
+          thumbnail: data.thumbnail,
           description: data.description,
           userId,
           places: {
@@ -144,8 +192,8 @@ export default class ListController implements ControllerClass {
                 lat: x.lat,
                 lon: x.lon,
                 description: x.description,
-                bannerUrl: x.banner,
-                thumbnailUrl: x.thumbnail,
+                banner: x.banner,
+                thumbnail: x.thumbnail,
                 userId,
               })),
             },
