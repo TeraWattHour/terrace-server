@@ -35,7 +35,10 @@ const PORT = process.env.PORT || 8000;
     });
   }
 
-  setupRouter(app);
+  const api = express();
+  setupRouter(api);
+
+  app.use(api);
 
   app.listen(PORT, () => {
     console.log("🚀 Server listening on http://localhost:" + PORT);

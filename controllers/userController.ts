@@ -26,7 +26,7 @@ export default class UserController implements ControllerClass {
   private async get_user(c: Context) {
     const validation = await get_user_dto.safeParseAsync({ userId: c.req.params["userId"] });
     if (!validation.success) {
-      return c.res.status(400).json({ errors: formatZodErrors(validation.error) });
+      return c.res.status(400).json({ errors: [formatZodErrors(validation.error)] });
     }
     const { data } = validation;
 

@@ -1,4 +1,4 @@
-import { ErrorCode } from "@/consts/errorCodes";
+import { ErrorCode } from "common/errorCodes";
 import { create_list_dto, get_list_by_user_dto, get_list_dto, search_list_dto } from "common/dtos/list";
 import authMiddleware from "@/middleware/authMiddleware";
 import Context from "@/utils/context";
@@ -35,7 +35,7 @@ export default class ListController implements ControllerClass {
       cursor: c.req.query["cursor"],
     });
     if (!validation.success) {
-      return c.res.status(400).json({ errors: formatZodErrors(validation.error) });
+      return c.res.status(400).json({ errors: [formatZodErrors(validation.error)] });
     }
     const { data } = validation;
 
@@ -70,11 +70,28 @@ export default class ListController implements ControllerClass {
           thumbnail: true,
         },
       });
+      if (lists.length === 0 && listCount > 0) {
+        return c.res.status(404).json({ errors: [{ code: ErrorCode.NOT_FOUND }] });
+      }
+
+      const next = await this.prisma.list.findFirst({
+        where: {
+          userId: data.userId,
+        },
+        cursor: {
+          id: lists[lists.length - 1].id,
+        },
+        skip: 1,
+        take: 1,
+        select: {
+          id: true,
+        },
+      });
 
       c.res.json({
         pagination: {
           cursor: data.cursor || null,
-          nextCursor: null,
+          nextCursor: next?.id || null,
           total: listCount,
           take: data.take,
         },
@@ -175,9 +192,10 @@ export default class ListController implements ControllerClass {
 
     const validation = await create_list_dto_server.safeParseAsync(c.req.body);
     if (!validation.success) {
-      return c.res.status(400).json({ errors: [{ code: ErrorCode.VALIDATION, data: validation.error }] });
+      return c.res.status(400).json({ errors: [formatZodErrors(validation.error)] });
     }
     const { data } = validation;
+
     try {
       const list = await this.prisma.list.create({
         data: {

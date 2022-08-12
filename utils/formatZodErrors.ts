@@ -1,7 +1,10 @@
-import { ErrorCode } from "@/consts/errorCodes";
+import { ErrorCode } from "common/errorCodes";
 import { ZodError } from "zod";
 
 const formatZodErrors = (error: ZodError<any>) => {
-  return error.issues;
+  return {
+    code: ErrorCode.VALIDATION,
+    data: error.issues,
+  };
 };
 export default formatZodErrors;

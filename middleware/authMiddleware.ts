@@ -4,7 +4,7 @@ import env from "../utils/env";
 import { prisma } from "../utils/prisma";
 import redisClient from "../utils/redis";
 import { isBefore } from "date-fns";
-import { ErrorCode } from "@/consts/errorCodes";
+import { ErrorCode } from "common/errorCodes";
 import { LocalRequest } from "@/utils/types";
 
 export default async function authMiddleware(req: LocalRequest, res: Response, next: NextFunction) {

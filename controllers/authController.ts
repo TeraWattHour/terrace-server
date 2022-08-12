@@ -1,4 +1,4 @@
-import formatZodErrors from "../utils/formatZodErrors";
+import formatZodErrors from "@/utils/formatZodErrors";
 import { Router, Express } from "express";
 import env from "../utils/env";
 import jwt from "jsonwebtoken";
@@ -14,7 +14,7 @@ import _ from "lodash";
 import authMiddleware from "@/middleware/authMiddleware";
 import { discord_response_dto, provider_callback_dto } from "common/dtos/auth";
 import fetch from "node-fetch";
-import { ErrorCode } from "@/consts/errorCodes";
+import { ErrorCode } from "common/errorCodes";
 import { getDiscordUserByCode } from "@/utils/getDiscordUserByCode";
 import optionalAuthMiddleware from "@/middleware/optionalAuthMiddleware";
 
@@ -31,6 +31,7 @@ export default class AuthController implements ControllerClass {
 
   public async mount(app: Express) {
     this.router.get("/me", authMiddleware, w(this, this.get_me));
+    this.router.get("/providers", w(this, this.get_providers));
     this.router.get("/:provider/callback", optionalAuthMiddleware, w(this, this.provider_callback));
 
     app.use("/api/v1/auth", this.router);
@@ -54,20 +55,42 @@ export default class AuthController implements ControllerClass {
     }
   }
 
+  private async get_providers(c: Context) {
+    try {
+      const providers: {
+        [key: string]: string | null;
+      } = {
+        discord: env("DC_OAUTH_URL"),
+      };
+
+      c.res.json({
+        data: Object.fromEntries(Object.entries(providers).filter((v) => typeof v[1] === "string")),
+      });
+    } catch (e) {
+      c.raiseInternalServerError(e);
+    }
+  }
+
   private async provider_callback(c: Context) {
     const validation = await provider_callback_dto.safeParseAsync({
       provider: c.req.params["provider"],
     });
     if (!validation.success) {
-      return c.res.status(400).json({ errors: formatZodErrors(validation.error) });
+      return c.res.status(400).json({ errors: [formatZodErrors(validation.error)] });
     }
 
     try {
       if (validation.data.provider === "discord") {
-        const me = await getDiscordUserByCode(c.req.query["code"] as string); // internal
+        const me = await getDiscordUserByCode(c.req.query["code"] as string);
         const validation = await discord_response_dto.safeParseAsync(me);
         if (!validation.success) {
-          return c.res.status(400).json({ errors: formatZodErrors(validation.error) });
+          return c.res.status(400).json({ errors: [formatZodErrors(validation.error)] });
+        }
+
+        if (!validation.data.verified) {
+          return c.res
+            .status(403)
+            .json({ errors: [{ code: ErrorCode.FORBIDDEN, message: "Your Discord account isn't verified" }] });
         }
 
         const dbProfile = await this.prisma.profile.findUnique({

@@ -16,5 +16,5 @@
     }
   },
   "exclude": ["node_modules"],
-  "include": ["**/*.ts", "types.d.ts", "request.d.ts"]
+  "include": ["**/*.ts", "./types.d.ts"]
 }
